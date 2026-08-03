@@ -2,7 +2,20 @@ from pathlib import Path
 
 import pytest
 
-from scripts.prepare_environment import stage_generated_modules
+from scripts.prepare_environment import resolve_uv, stage_generated_modules
+
+
+def test_resolves_explicit_uv_executable(tmp_path: Path):
+    uv = tmp_path / "uv"
+    uv.write_text("#!/bin/sh\n")
+    uv.chmod(0o755)
+
+    assert resolve_uv({"ACQUIRE_UV": str(uv), "PATH": ""}) == uv.resolve()
+
+
+def test_rejects_missing_uv_executable():
+    with pytest.raises(RuntimeError, match="uv executable not found"):
+        resolve_uv({"PATH": ""})
 
 
 def test_stages_config_and_pluginlist(tmp_path: Path):

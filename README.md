@@ -16,7 +16,7 @@ All transitive versions and hashes are recorded in `requirements.lock`.
 
 ## Build on Apple Silicon
 
-Install `uv` and Apple command-line developer tools, then run from the repository root:
+Install `uv` 0.11.x and Apple command-line developer tools, then run from the repository root. CI pins uv 0.11.16 and the build resolves the selected executable to an absolute path before use:
 
 ```bash
 ./scripts/build.sh
@@ -32,6 +32,7 @@ Generated release files under `dist/` are:
 - `acquire` — arm64 one-file executable;
 - `acquire.sha256` — SHA-256 checksum;
 - `SBOM.txt` — installed-package inventory.
+- `LICENSE` and `THIRD_PARTY_NOTICES.md` — source and third-party license terms.
 
 ## Operator use
 
@@ -49,11 +50,14 @@ Root is preferred, but Full Disk Access is still needed for the best macOS cover
 
 Gatekeeper behavior varies with distribution method and organizational policy. Test the final notarized binary on a representative clean Apple Silicon Mac, including Full Disk Access behavior and evidence-container opening, before release.
 
-## Project records
+## Security
 
-- [Design specification](docs/superpowers/specs/2026-08-03-acquire-macos-arm64-package-design.md)
-- [Implementation plan](docs/superpowers/plans/2026-08-03-acquire-macos-arm64-package.md)
+Do not report vulnerabilities or suspected evidence exposure in a public issue. Follow [SECURITY.md](SECURITY.md) and use GitHub's private vulnerability-reporting feature.
+
+## Documentation and license
+
 - [Operator guide](docs/OPERATOR.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
+- [AGPL-3.0-or-later license](LICENSE)
 
 The corresponding packaging source must accompany distribution as required by the bundled AGPL software. See `THIRD_PARTY_NOTICES.md` for upstream projects and license responsibilities.

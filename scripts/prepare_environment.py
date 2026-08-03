@@ -24,6 +24,17 @@ def stage_generated_modules(
     return config_out, plugin_out
 
 
+def resolve_uv(env: dict[str, str]) -> Path:
+    candidate = env.get("ACQUIRE_UV") or shutil.which("uv", path=env.get("PATH"))
+    if not candidate:
+        raise RuntimeError("uv executable not found; install uv or set ACQUIRE_UV")
+
+    path = Path(candidate).expanduser().resolve()
+    if not path.is_file() or not os.access(path, os.X_OK):
+        raise RuntimeError(f"uv executable is not executable: {path}")
+    return path
+
+
 def _capture(command: list[str], env: dict[str, str]) -> str:
     return subprocess.run(
         command,
@@ -39,17 +50,18 @@ def run(root: Path) -> None:
     python = venv / "bin/python"
     env = os.environ.copy()
     env.setdefault("UV_CACHE_DIR", str(root / ".uv-cache"))
+    uv = str(resolve_uv(env))
 
     if not python.exists():
-        subprocess.run(["uv", "venv", "--python", "3.10", str(venv)], check=True, env=env)
+        subprocess.run([uv, "venv", "--python", "3.10", str(venv)], check=True, env=env)
 
     subprocess.run(
-        ["uv", "pip", "sync", "--python", str(python), str(root / "requirements.lock")],
+        [uv, "pip", "sync", "--python", str(python), str(root / "requirements.lock")],
         check=True,
         env=env,
     )
     subprocess.run(
-        ["uv", "pip", "install", "--python", str(python), str(root)],
+        [uv, "pip", "install", "--no-build-isolation", "--python", str(python), str(root)],
         check=True,
         env=env,
     )

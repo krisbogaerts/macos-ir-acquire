@@ -1,0 +1,50 @@
+name: Security and tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.16"
+          enable-cache: true
+          python-version: "3.10"
+
+      - name: Verify dependency lock
+        run: |
+          uv pip compile requirements.in \
+            --python-version 3.10 \
+            --python-platform aarch64-apple-darwin \
+            --generate-hashes \
+            --output-file requirements.lock
+          git diff --exit-code -- requirements.lock
+
+      - name: Prepare environment and run tests
+        run: |
+          python3 scripts/prepare_environment.py
+          .venv/bin/pytest tests -v
+
+      - name: Audit locked dependencies
+        run: uvx pip-audit --require-hashes --disable-pip -r requirements.lock
+
+      - name: Static security analysis
+        run: uvx bandit -r src scripts -ll

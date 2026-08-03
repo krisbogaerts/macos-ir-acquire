@@ -12,3 +12,9 @@ def test_sbom_normalizes_editable_launcher_path():
 
     assert "acquire-macos-launcher==0.1.0" in script
     assert "file://.*#acquire-macos-launcher==0.1.0" in script
+
+
+def test_release_includes_license_and_notices():
+    script = Path("scripts/verify_release.sh").read_text()
+
+    assert "cp LICENSE THIRD_PARTY_NOTICES.md dist/" in script

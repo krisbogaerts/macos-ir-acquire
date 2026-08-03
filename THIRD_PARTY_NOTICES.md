@@ -1,6 +1,10 @@
 # Third-Party Notices and Corresponding Source
 
-This package redistributes Python, Acquire, Dissect modules, PyInstaller's bootloader, and the dependencies listed in `requirements.lock` and the generated `dist/SBOM.txt`. Those inventories are part of the release record; they do not replace the license texts shipped by upstream projects.
+This package redistributes Python, Acquire, Dissect modules, PyInstaller's bootloader, and the dependencies listed in `requirements.lock` and the generated `dist/SBOM.txt`. Those inventories are part of the release record; they do not replace upstream license texts. This repository's launcher and packaging source are licensed under AGPL-3.0-or-later; the complete terms are in `LICENSE`.
+
+## Python
+
+[Python](https://www.python.org/) is distributed under the Python Software Foundation License and other historical licenses documented by the Python project. The frozen executable includes CPython 3.10. Retain the license materials from the exact CPython distribution used for each release.
 
 ## Acquire and Dissect
 
@@ -17,6 +21,7 @@ The packaging source in this repository—including the launcher, embedded confi
 
 - `requirements.lock` is the hash-locked build dependency inventory.
 - `dist/SBOM.txt` is generated from the environment used for the release.
+- `dist/LICENSE` and `dist/THIRD_PARTY_NOTICES.md` accompany the executable.
 - Upstream source archives and their license files should be retained with the internal release record.
 
 This notice is operational guidance, not legal advice. The distributing organization remains responsible for its license review and source-offer process.
