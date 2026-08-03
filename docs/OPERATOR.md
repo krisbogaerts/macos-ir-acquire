@@ -8,12 +8,16 @@ Root does not universally bypass macOS privacy controls. Grant **Full Disk Acces
 
 ## Run
 
-Create a dedicated writable case directory with enough free space, place `acquire` in it, open Terminal in that directory, and run exactly:
+Create a dedicated local case directory with enough free space, restrict access to authorized personnel, and avoid shared or cloud-synchronized folders. Place the extracted release files in it, open Terminal in that directory, and verify the executable before running it:
 
 ```bash
-chmod +x acquire
+umask 077
+shasum -a 256 -c acquire.sha256
+xattr -d com.apple.quarantine ./acquire
 sudo ./acquire
 ```
+
+Continue only if checksum verification reports `acquire: OK`. Remove quarantine only from a release obtained from a trusted source after its checksums have been verified.
 
 The embedded defaults select Acquire's full macOS profile and a gzip-compressed tar archive. Filesystem fallback is disabled, so Acquire will not switch to OS-level filesystem access when raw filesystem parsing is unsupported. No external disk is required; output is written beside the executable. The launcher stops below 5 GiB free and warns below 20 GiB, but this does not guarantee that a full acquisition will fit.
 

@@ -40,11 +40,12 @@ Generated release files under `dist/` are:
 
 Follow the [operator guide](docs/OPERATOR.md). After downloading a release:
 
-1. Download `acquire-macos-arm64.tar.gz` and `acquire-macos-arm64.tar.gz.sha256` into your `Downloads` folder.
-2. Open Terminal and verify the downloaded archive:
+1. Create a dedicated, access-controlled case directory on the target Mac with at least 20 GiB of free space when practical. Place `acquire-macos-arm64.tar.gz` and `acquire-macos-arm64.tar.gz.sha256` in that directory. Do not use a shared or cloud-synchronized folder.
+2. Open Terminal, change to that case directory, restrict permissions for newly created files, and verify the downloaded archive:
 
 ```bash
-cd ~/Downloads
+cd "/path/to/approved-case-directory"
+umask 077
 shasum -a 256 -c acquire-macos-arm64.tar.gz.sha256
 ```
 
@@ -70,12 +71,13 @@ Continue only when the command reports `acquire: OK`.
 6. Return to the extracted directory, remove the quarantine attribute from the checksum-verified executable, and run it:
 
 ```bash
-cd ~/Downloads/acquire-macos-arm64
+cd "/path/to/approved-case-directory/acquire-macos-arm64"
+umask 077
 xattr -d com.apple.quarantine ./acquire
 sudo ./acquire
 ```
 
-Enter the administrator password when prompted. Acquire writes the evidence archive, report, and log into `~/Downloads/acquire-macos-arm64`; leave the terminal open until collection finishes and upload all resulting collection files according to the approved evidence-handling process.
+Replace `/path/to/approved-case-directory` with the actual case-directory path. Enter the administrator password when prompted. Acquire writes the evidence archive, report, and log into the current extracted directory; leave the terminal open until collection finishes and upload all resulting collection files according to the approved evidence-handling process.
 
 Only remove the quarantine attribute after both checksum commands report `OK` and you trust the release source. The current release is ad-hoc signed rather than Apple-notarized, so Gatekeeper otherwise blocks the downloaded executable. Start with at least 20 GiB of free space when practical; the launcher refuses to run below 5 GiB.
 
