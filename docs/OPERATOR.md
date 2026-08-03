@@ -15,7 +15,7 @@ chmod +x acquire
 sudo ./acquire
 ```
 
-The embedded defaults select Acquire's full macOS profile and an uncompressed tar archive. Filesystem fallback is disabled, so Acquire will not switch to OS-level filesystem access when raw filesystem parsing is unsupported. No external disk is required; output is written beside the executable. The launcher stops below 5 GiB free and warns below 20 GiB, but this does not guarantee that a full acquisition will fit. Uncompressed output can require substantially more free space than gzip output.
+The embedded defaults select Acquire's full macOS profile and a gzip-compressed tar archive. Filesystem fallback is disabled, so Acquire will not switch to OS-level filesystem access when raw filesystem parsing is unsupported. No external disk is required; output is written beside the executable. The launcher stops below 5 GiB free and warns below 20 GiB, but this does not guarantee that a full acquisition will fit.
 
 Do not interrupt the process unless necessary. Preserve the console output if an error occurs.
 
@@ -23,7 +23,7 @@ Do not interrupt the process unless necessary. Preserve the console output if an
 
 Upload all generated evidence from the case directory:
 
-- the evidence archive (normally a `.tar` file);
+- the evidence archive (normally a `.tar.gz` file);
 - the matching `.report.json` collection report;
 - the matching `.log` execution log.
 

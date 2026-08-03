@@ -40,12 +40,12 @@ CONFIG = {
     "arguments": [
         "--profile", "full",
         "--output-type", "tar",
-        "--no-compress",
+        "--compress",
     ]
 }
 ```
 
-This makes `sudo ./acquire` perform a full-profile collection into an uncompressed tar archive. Filesystem fallback is disabled. Explicit CLI arguments continue to override these defaults.
+This makes `sudo ./acquire` perform a full-profile collection into a gzip-compressed tar archive. Filesystem fallback is disabled. Explicit CLI arguments continue to override these defaults.
 
 Output remains in the current directory. The operator runs the binary from a dedicated case directory and uploads the resulting evidence archive, JSON report, and log. Encryption and automatic upload remain disabled because no organization public key or upload endpoint has been supplied.
 
@@ -89,7 +89,7 @@ sudo ./acquire
   -> preflight validates root, output path, and free capacity
   -> Acquire opens the local target, preferring raw access
   -> no filesystem fallback is enabled
-  -> full macOS profile writes an uncompressed tar evidence archive
+  -> full macOS profile writes a gzip-compressed tar evidence archive
   -> Acquire writes its JSON report and log
   -> PyInstaller normally removes _MEI… on clean exit
   -> operator uploads archive, report, and log

@@ -14,6 +14,6 @@ def test_embedded_arguments_are_exact():
             "full",
             "--output-type",
             "tar",
-            "--no-compress",
+            "--compress",
         ]
     }

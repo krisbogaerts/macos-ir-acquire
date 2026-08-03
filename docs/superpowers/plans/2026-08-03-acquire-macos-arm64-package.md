@@ -15,7 +15,7 @@
 - Do not alter upstream Acquire collection modules or add macOS volatile modules.
 - Build exactly one runtime deliverable with PyInstaller `--onefile` behavior.
 - Explicitly document and verify temporary `_MEI…` extraction; never call the result fileless, memory-only, or zero-footprint.
-- Default arguments are exactly `--profile full --output-type tar --no-compress`.
+- Default arguments are exactly `--profile full --output-type tar --compress`.
 - Require effective UID 0; stop below 5 GiB free and warn below 20 GiB free.
 - Write evidence to the current directory; do not upload, encrypt, delete, quarantine, or clean up automatically.
 - Preserve Acquire's archive, JSON report, log, exit behavior, and CLI overrides.
@@ -278,7 +278,7 @@ CONFIG = {
         "full",
         "--output-type",
         "tar",
-        "--no-compress",
+        "--compress",
     ]
 }
 ```
@@ -302,7 +302,7 @@ def test_embedded_arguments_are_exact():
             "full",
             "--output-type",
             "tar",
-            "--no-compress",
+            "--compress",
         ]
     }
 ```
@@ -751,7 +751,7 @@ chmod +x acquire
 sudo ./acquire
 ```
 
-The embedded defaults select Acquire's full macOS profile and an uncompressed tar archive. Filesystem fallback is disabled.
+The embedded defaults select Acquire's full macOS profile and a gzip-compressed tar archive. Filesystem fallback is disabled.
 
 ## Upload
 Upload the evidence archive, `.report.json`, and `.log`. Do not edit or delete partial output before consulting the investigator.
@@ -844,7 +844,7 @@ mkdir -p build/acceptance
 (cd build/acceptance && sudo ../../dist/acquire 2>&1 | tee acceptance-console.log)
 ```
 
-Expected: output shows `_MEI…`, preflight passes, effective/default arguments contain the full profile and uncompressed tar output, and Acquire exits zero.
+Expected: output shows `_MEI…`, preflight passes, effective/default arguments contain the full profile and gzip-compressed tar output, and Acquire exits zero.
 
 - [ ] **Step 3: Review collection failures and frozen-import health**
 
@@ -861,10 +861,10 @@ Expected: no missing frozen imports, missing plugins, or unexpected tracebacks. 
 Run:
 
 ```bash
-.venv/bin/target-info build/acceptance/*.tar
+.venv/bin/target-info build/acceptance/*.tar.gz
 ```
 
-Expected: Dissect opens the acquired uncompressed tar container successfully.
+Expected: Dissect opens the acquired gzip-compressed tar container successfully.
 
 - [ ] **Step 5: Re-run release gates and inspect repository state**
 

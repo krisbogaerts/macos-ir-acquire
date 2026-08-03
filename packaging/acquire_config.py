@@ -4,6 +4,6 @@ CONFIG = {
         "full",
         "--output-type",
         "tar",
-        "--no-compress",
+        "--compress",
     ]
 }

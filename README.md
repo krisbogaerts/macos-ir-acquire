@@ -1,6 +1,6 @@
 # Acquire macOS arm64 one-file package
 
-This repository packages Fox-IT's Acquire for authorized incident-response and forensic collection on Apple Silicon Macs. It produces a single PyInstaller executable that an operator runs as `sudo ./acquire`; the embedded defaults use Acquire's full macOS profile and an uncompressed tar archive. Filesystem fallback is disabled.
+This repository packages Fox-IT's Acquire for authorized incident-response and forensic collection on Apple Silicon Macs. It produces a single PyInstaller executable that an operator runs as `sudo ./acquire`; the embedded defaults use Acquire's full macOS profile and a gzip-compressed tar archive. Filesystem fallback is disabled.
 
 The package is intentionally a thin launcher around upstream Acquire rather than a new collector. It requires no Python installation on the target Mac and writes the evidence archive, collection report, and log to the current directory. PyInstaller one-file execution creates a temporary `_MEI…` extraction directory, so the result is not fileless.
 
