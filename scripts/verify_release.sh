@@ -28,3 +28,4 @@ UV_CACHE_DIR="$root_dir/.uv-cache" "$uv_bin" pip freeze --python .venv/bin/pytho
 grep -q '^acquire==3\.22$' dist/SBOM.txt
 grep -q '^pyinstaller==6\.21\.0$' dist/SBOM.txt
 grep -q '^pytest==9\.0\.3$' dist/SBOM.txt
+scripts/package_release.sh dist

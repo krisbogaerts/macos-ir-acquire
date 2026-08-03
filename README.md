@@ -33,12 +33,18 @@ Generated release files under `dist/` are:
 - `acquire.sha256` — SHA-256 checksum;
 - `SBOM.txt` — installed-package inventory.
 - `LICENSE` and `THIRD_PARTY_NOTICES.md` — source and third-party license terms.
+- `acquire-macos-arm64.tar.gz` — downloadable release archive that preserves the executable permission;
+- `acquire-macos-arm64.tar.gz.sha256` — SHA-256 checksum for the complete release archive.
 
 ## Operator use
 
-Follow the [operator guide](docs/OPERATOR.md). The target command is:
+Follow the [operator guide](docs/OPERATOR.md). Download both archive files, verify and extract the release, then run the executable:
 
 ```bash
+shasum -a 256 -c acquire-macos-arm64.tar.gz.sha256
+mkdir acquire-macos-arm64
+tar -xzf acquire-macos-arm64.tar.gz -C acquire-macos-arm64
+cd acquire-macos-arm64
 sudo ./acquire
 ```
 
