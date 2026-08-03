@@ -15,6 +15,7 @@ if find dist -mindepth 1 -maxdepth 1 -type d | grep -q .; then
 fi
 
 UV_CACHE_DIR="$root_dir/.uv-cache" uv pip freeze --python .venv/bin/python \
+  | sed 's#^acquire-macos-launcher @ file://.*#acquire-macos-launcher==0.1.0#' \
   | LC_ALL=C sort > dist/SBOM.txt
 (cd dist && shasum -a 256 acquire > acquire.sha256)
 (cd dist && shasum -a 256 -c acquire.sha256)
