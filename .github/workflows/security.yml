@@ -38,6 +38,11 @@ jobs:
             --output-file requirements.lock
           git diff --exit-code -- requirements.lock
 
+      - name: Install test shell
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes zsh
+
       - name: Prepare environment and run tests
         run: |
           python3 scripts/prepare_environment.py
