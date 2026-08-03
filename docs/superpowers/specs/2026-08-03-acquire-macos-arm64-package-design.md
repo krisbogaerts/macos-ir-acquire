@@ -39,14 +39,13 @@ An embedded `acquire.config` uses Acquire's supported configuration interface:
 CONFIG = {
     "arguments": [
         "--profile", "full",
-        "--fallback",
-        "--compress",
-        "--compress-method", "gzip",
+        "--output-type", "tar",
+        "--no-compress",
     ]
 }
 ```
 
-This makes `sudo ./acquire` perform a compressed full-profile collection. Explicit CLI arguments continue to override these defaults.
+This makes `sudo ./acquire` perform a full-profile collection into an uncompressed tar archive. Filesystem fallback is disabled. Explicit CLI arguments continue to override these defaults.
 
 Output remains in the current directory. The operator runs the binary from a dedicated case directory and uploads the resulting evidence archive, JSON report, and log. Encryption and automatic upload remain disabled because no organization public key or upload endpoint has been supplied.
 
@@ -89,8 +88,8 @@ sudo ./acquire
   -> embedded Python and dependencies are extracted there
   -> preflight validates root, output path, and free capacity
   -> Acquire opens the local target, preferring raw access
-  -> --fallback permits OS-level access when required
-  -> full macOS profile writes a compressed evidence archive
+  -> no filesystem fallback is enabled
+  -> full macOS profile writes an uncompressed tar evidence archive
   -> Acquire writes its JSON report and log
   -> PyInstaller normally removes _MEI… on clean exit
   -> operator uploads archive, report, and log
@@ -130,7 +129,7 @@ Acquire and much of Dissect are AGPL-3.0-or-later. PyInstaller is GPL-2.0-or-lat
 
 - Non-root, invalid output directory, or less than 5 GiB free: stop before Acquire collection.
 - Less than 20 GiB free: warn and continue.
-- Raw APFS failure: permit upstream `--fallback` and preserve the limitation in Acquire output.
+- Raw APFS failure: do not fall back to OS-level filesystem access; preserve the limitation in Acquire output.
 - TCC or file-permission denial: continue where upstream Acquire permits and record failures.
 - Missing frozen import/plugin: fail build or acceptance testing; do not release.
 - Interrupted execution: preserve partial evidence and warn that `_MEI…` cleanup may be incomplete.

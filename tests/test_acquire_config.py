@@ -12,9 +12,8 @@ def test_embedded_arguments_are_exact():
         "arguments": [
             "--profile",
             "full",
-            "--fallback",
-            "--compress",
-            "--compress-method",
-            "gzip",
+            "--output-type",
+            "tar",
+            "--no-compress",
         ]
     }
