@@ -15,5 +15,5 @@ where = ["src"]
 include = ["acquire_launcher*"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
