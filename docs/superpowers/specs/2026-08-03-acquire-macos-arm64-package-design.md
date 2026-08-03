@@ -1,31 +1,35 @@
-# Acquire macOS Apple Silicon Package Design
+# Acquire macOS Apple Silicon PyInstaller Package Design
 
 ## Objective
 
-Build a single Apple Silicon executable named `acquire` that packages Fox-IT Acquire 3.22 for authorized macOS live-response collection. The operator runs:
+Package Fox-IT Acquire 3.22 as one native Apple Silicon executable for authorized macOS live-response collection. The operator runs:
 
 ```bash
 sudo ./acquire
 ```
 
-The package must load its embedded Python runtime, Python modules, and Dissect plugins from memory. It must not extract an interpreter or support files onto the target filesystem. Acquire will write its evidence archive, execution report, and log to the operator's current directory.
+The deliverable is one PyInstaller `--onefile` executable. At runtime, PyInstaller extracts its embedded Python runtime and bundled dependencies into a temporary `_MEI…` directory, launches Acquire, and normally removes the directory when the process exits. This temporary extraction is accepted and must be documented as collection impact.
 
 ## Scope
 
-This project packages upstream Acquire; it does not reimplement or extend its forensic collectors. The only custom runtime code is a small launcher that performs practical preflight checks and then calls `acquire.acquire.main()`.
+The project packages upstream Acquire without changing its forensic collection modules. Custom runtime behavior is limited to:
 
-The first release targets native `arm64` macOS only. Acquire runs as root and is intended only for systems on which collection is authorized.
+- a small preflight launcher;
+- Acquire's supported embedded default configuration;
+- a generated static Dissect plugin list required by frozen applications.
+
+The first release targets native `arm64` macOS only and is intended to run as root on systems where collection is authorized.
 
 ## Pinned Baseline
 
 - Acquire: `3.22`
-- Embedded Python: `3.10`
-- PyOxidizer: `0.24.0`
-- Architecture: `aarch64-apple-darwin`
-- Dissect dependencies: resolved within Acquire's declared compatible ranges and locked by exact version and hash for reproducible builds
-- Raw macOS filesystem support: include `dissect.apfs` and its required dependencies
+- Python: `3.10`
+- PyInstaller: `6.21.0`
+- Architecture: `arm64`
+- Raw macOS filesystem support: `dissect.apfs`
+- All transitive dependencies: exact versions and hashes in a committed lock file
 
-The build records the Acquire tag/commit, dependency versions, input hashes, build-host macOS version, Apple SDK version, PyOxidizer version, and final executable SHA-256.
+Python 3.10 is installed into a workspace-local virtual environment with `uv`. The binary is built on Apple Silicon because PyInstaller is not a cross-compiler.
 
 ## Runtime Defaults
 
@@ -42,131 +46,120 @@ CONFIG = {
 }
 ```
 
-This makes `sudo ./acquire` perform a compressed full-profile collection. Normal CLI arguments continue to override configured defaults, so an investigator can explicitly select another profile or output setting.
+This makes `sudo ./acquire` perform a compressed full-profile collection. Explicit CLI arguments continue to override these defaults.
 
-Output remains in the current directory because a reliable external drive or fixed destination cannot be assumed. Operators are instructed to launch the executable from a dedicated case directory and upload the resulting archive, report, and log.
-
-Encryption is not enabled by default because no organization public key has been supplied. It can be added later through Acquire's existing public-key encryption configuration without changing collection logic.
+Output remains in the current directory. The operator runs the binary from a dedicated case directory and uploads the resulting evidence archive, JSON report, and log. Encryption and automatic upload remain disabled because no organization public key or upload endpoint has been supplied.
 
 ## Preflight Launcher
 
-The in-memory launcher performs only these checks:
+Before delegating to `acquire.acquire.main()`, the launcher:
 
-1. Require effective UID 0. If not root, print `Run with: sudo ./acquire` and exit without starting collection.
-2. Resolve the current working directory and confirm it is a writable directory.
-3. Read available capacity for the output filesystem with `shutil.disk_usage()`.
-4. Stop when less than 5 GiB is available.
-5. Print a warning, but continue automatically, when less than 20 GiB is available.
-6. Print the output directory and available capacity before calling `acquire.acquire.main()`.
+1. Requires effective UID 0.
+2. Resolves and checks the current output directory.
+3. Reads free space with `shutil.disk_usage()`.
+4. Stops below 5 GiB free.
+5. Warns but continues below 20 GiB free.
+6. Prints the output directory, free capacity, and PyInstaller extraction directory when present.
 
-The launcher does not recursively scan the target to estimate acquisition size. Such a scan would add delay and filesystem access while still failing to predict compressed output accurately. It creates no preflight files and changes no Acquire collection behavior.
+The launcher does not recursively estimate artifact sizes, create its own log, upload data, or alter collection behavior.
 
 ## Packaging Architecture
 
-PyOxidizer embeds the following into one native executable:
+The PyInstaller spec bundles:
 
-- CPython 3.10 runtime
-- Acquire 3.22
-- required Dissect packages, including APFS support
-- native extension modules needed by those packages
-- the generated static `dissect.target` plugin list
-- the embedded Acquire defaults
-- the preflight launcher
-- required package metadata and data resources
+- CPython 3.10;
+- Acquire 3.22;
+- required Dissect packages, including APFS support;
+- Acquire and Dissect package data;
+- all required Dissect submodules discovered by PyInstaller hooks;
+- the generated `dissect.target` static plugin list;
+- `acquire.config`;
+- the preflight launcher.
 
-`target-build-pluginlist` runs during the build against the exact locked Dissect environment. The generated `_pluginlist.py` is included before PyOxidizer freezes resources. This replaces runtime plugin discovery, which does not work reliably from an in-memory frozen package.
+`target-build-pluginlist` runs in the exact locked Python environment before PyInstaller analysis. It writes `_pluginlist.py` into the build environment's installed `dissect.target` package. The supported `acquire.config` module is similarly staged into the installed Acquire package. PyInstaller then analyzes this prepared environment.
 
-The PyOxidizer entry module is the preflight launcher. After successful checks, the launcher imports and invokes upstream `acquire.acquire.main()` in the same process.
+The entry script is the preflight launcher. It imports Acquire only after preflight succeeds.
 
-## Collection Flow
+## Runtime Flow and Filesystem Impact
 
 ```text
 sudo ./acquire
-  -> native arm64 Mach-O is mapped by macOS
-  -> embedded Python/resources load from memory
+  -> macOS launches the signed arm64 bootloader
+  -> PyInstaller creates a temporary _MEI… directory
+  -> embedded Python and dependencies are extracted there
   -> preflight validates root, output path, and free capacity
   -> Acquire opens the local target, preferring raw access
   -> --fallback permits OS-level access when required
-  -> full macOS profile streams artifacts into compressed TAR output
-  -> Acquire writes its JSON execution report and log
+  -> full macOS profile writes a compressed evidence archive
+  -> Acquire writes its JSON report and log
+  -> PyInstaller normally removes _MEI… on clean exit
   -> operator uploads archive, report, and log
 ```
 
-The executable itself must exist on a filesystem for macOS to launch it. "In memory" means that the embedded Python environment is not unpacked into a temporary directory. macOS and the source filesystem can still record execution and file access.
+The collector is not fileless and does not run solely from memory. Abrupt termination, a crash, or power loss can leave the `_MEI…` directory behind. The operator documentation identifies this behavior and prohibits presenting the collector as zero-footprint.
 
 ## macOS Evidence Included by the Full Profile
 
-Upstream Acquire 3.22 controls the exact artifact paths. The full macOS profile includes:
+Upstream Acquire 3.22 controls exact paths. Its full macOS profile includes selected:
 
-- `/etc` and `/usr/local/etc`
-- selected user shell histories, shell configuration, application configuration, user LaunchAgents, preferences, and logs
-- `/var/log`, `/var/db`, audit, cron/at, runtime, Unified Log data, sleep image, swap files, and selected notification data
-- FSEvents
-- system and user LaunchAgents, LaunchDaemons, and StartupItems
-- kernel extensions
-- system and user preferences
-- installation history, macOS version information, DHCP leases, and application `Info.plist` metadata
-- Safari history, bookmarks, downloads, extensions, last session, and cache database
-- Chrome, Chromium, Edge, and Brave history/profile databases and selected session, cookie, login, bookmark, favicon, top-sites, and web-data artifacts
-- Firefox profile SQLite databases
-- SSH configuration and metadata, excluding private keys unless explicitly requested
-- Docker logs and configuration selected by Acquire
+- system configuration under `/etc` and `/usr/local/etc`;
+- shell history, user configuration, user preferences, user LaunchAgents, and logs;
+- `/var` logs and databases, audit and scheduled-task data, Unified Log data, sleep image, swap files, and notification data;
+- FSEvents;
+- system LaunchAgents, LaunchDaemons, StartupItems, extensions, preferences, installation history, OS metadata, and DHCP leases;
+- application `Info.plist` metadata;
+- Safari, Chrome, Chromium, Edge, Brave, and Firefox artifacts defined by Acquire's History module;
+- SSH configuration and metadata, excluding private keys unless explicitly requested;
+- selected Docker logs and configuration.
 
-Acquire's current macOS volatile profile is empty. This build therefore does not claim comprehensive collection of live processes, sockets, clipboard, RAM, current sessions, Mail, Messages, Keychain secrets, or every third-party browser. No custom volatile modules are added.
+Acquire 3.22 has no macOS volatile-profile modules. This build does not claim comprehensive process, socket, RAM, clipboard, current-session, Mail, Messages, Keychain-secret, or every-browser collection.
 
 ## Permissions and macOS Privacy
 
-Root is required for the intended raw-device collection path. `sudo` does not universally bypass macOS Transparency, Consent, and Control protections. Raw APFS acquisition may provide artifacts unavailable through normal filesystem APIs; fallback access can still encounter Full Disk Access restrictions. Acquire's report and log are the authoritative record of collected, skipped, and failed artifacts.
+Root is required for the intended raw-device path. `sudo` does not universally bypass macOS Transparency, Consent, and Control restrictions. The operator guidance recommends Full Disk Access for the execution context when organizational policy permits it. The package does not change TCC, SIP, quarantine, or other security controls.
 
-The release documentation will recommend granting Full Disk Access to the terminal or deployment context when organizational policy permits it. The package will not attempt to alter TCC, SIP, quarantine, or other security controls.
+Acquire's report and log are the authoritative record of collected, skipped, and failed artifacts.
 
-## Output and Evidence Handling
+## Signing and Distribution
 
-Acquire creates and incrementally writes the compressed evidence archive plus its JSON execution report and log. These are intentional writes to the investigated device because no external destination is available. The operator must upload all three outputs and retain them together.
+Development builds receive an ad-hoc signature. Production releases should use an organization-controlled Developer ID Application certificate and Apple notarization. The release includes the executable SHA-256, dependency inventory, signature verification commands, and corresponding source/build scripts.
 
-The package does not silently upload, delete, quarantine, or clean up files. It leaves incomplete outputs in place after interruption or an out-of-space failure so investigators can identify and handle them explicitly.
-
-## Signing, Distribution, and Licensing
-
-Development builds may use ad-hoc signing for local validation. A production release should use a Developer ID signature and Apple notarization when credentials are available. Signing status, executable SHA-256, and verification instructions accompany each release.
-
-Acquire and much of Dissect are AGPL-3.0-or-later. Distribution must include the applicable license notices and provide recipients the corresponding source and build scripts. The runtime remains one executable; compliance files and source can be distributed alongside it through the delivery portal.
+Acquire and much of Dissect are AGPL-3.0-or-later. PyInstaller is GPL-2.0-or-later with an exception allowing distribution of bundled applications. Applicable notices and corresponding-source obligations accompany distribution.
 
 ## Failure Handling
 
-- Non-root execution: fail before Acquire starts.
-- Invalid or unwritable current directory: fail before Acquire starts.
-- Less than 5 GiB free: fail before Acquire starts.
+- Non-root, invalid output directory, or less than 5 GiB free: stop before Acquire collection.
 - Less than 20 GiB free: warn and continue.
-- Missing raw-device/APFS capability: allow Acquire's `--fallback` behavior and record the limitation.
-- Permission/TCC denial: continue where upstream Acquire permits and preserve failures in its report/log.
-- Collection exception or out-of-space condition: preserve upstream exit status and leave outputs for review.
-- Missing frozen module or plugin: treat as a build-validation failure; do not release the executable.
+- Raw APFS failure: permit upstream `--fallback` and preserve the limitation in Acquire output.
+- TCC or file-permission denial: continue where upstream Acquire permits and record failures.
+- Missing frozen import/plugin: fail build or acceptance testing; do not release.
+- Interrupted execution: preserve partial evidence and warn that `_MEI…` cleanup may be incomplete.
 
 ## Verification
 
-The build is not considered releasable until all of the following pass:
+A release must pass:
 
-1. Unit tests cover root rejection, unwritable output, hard capacity failure, low-capacity warning, and successful delegation to Acquire.
-2. Dependency lock and hashes verify cleanly.
-3. The generated Dissect plugin list is present and non-empty.
-4. The binary reports a native `arm64` Mach-O architecture.
-5. `codesign --verify --strict` passes for the selected signing mode.
-6. `sudo ./acquire --help` starts without extracting a PyInstaller-style temporary tree.
-7. A controlled `--profile none` smoke acquisition produces a valid report/log and exits successfully.
-8. A controlled full-profile macOS acquisition is opened successfully by the supported Dissect analysis tooling, and its report is reviewed for unexpected module/plugin failures.
-9. The final executable SHA-256 and software bill of materials are generated.
+1. Unit tests for every preflight branch and default configuration.
+2. Hash verification for locked dependencies.
+3. Non-empty generated Dissect plugin list.
+4. Native arm64 Mach-O inspection.
+5. Strict code-signature verification.
+6. Frozen `--help`/launcher smoke test.
+7. Controlled root `--profile none` acquisition.
+8. Confirmation that `_MEI…` is used during execution and normally removed afterward.
+9. Controlled full-profile acquisition with report/log review.
+10. Successful opening of the evidence container using Dissect tooling.
+11. Final SHA-256 and software inventory generation.
 
 ## Deliverables
 
-- PyOxidizer configuration
-- minimal preflight launcher and tests
-- embedded Acquire configuration
-- reproducible dependency lock
-- deterministic plugin-list generation/build script
-- Apple Silicon `acquire` executable
-- checksum and software bill of materials
-- signing/notarization helper commands
-- operator instructions for execution, output upload, privacy permissions, and limitations
-- license notices and corresponding-source instructions
-
+- dependency inputs and hash-locked requirements;
+- minimal launcher and tests;
+- embedded Acquire configuration;
+- deterministic plugin-list staging;
+- PyInstaller spec and build scripts;
+- native Apple Silicon `acquire` executable;
+- checksum and software inventory;
+- signature/notarization guidance;
+- operator and forensic-impact documentation;
+- license notices and corresponding-source instructions.
