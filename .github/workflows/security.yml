@@ -49,7 +49,7 @@ jobs:
           .venv/bin/pytest tests -v
 
       - name: Audit locked dependencies
-        run: uvx pip-audit --require-hashes --disable-pip -r requirements.lock
+        run: uvx --from pip-audit==2.10.1 pip-audit --require-hashes --disable-pip -r requirements.lock
 
       - name: Static security analysis
-        run: uvx bandit -r src scripts -ll
+        run: uvx --from bandit==1.9.4 bandit -r src scripts -ll
