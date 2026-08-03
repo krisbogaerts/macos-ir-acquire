@@ -14,6 +14,7 @@ __pycache__/
 build/
 dist/
 docs/superpowers/
+scripts/publish_release.local.sh
 *.pyc
 *.egg-info/
 *.pem
