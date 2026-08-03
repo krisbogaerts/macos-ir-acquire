@@ -45,8 +45,11 @@ shasum -a 256 -c acquire-macos-arm64.tar.gz.sha256
 mkdir acquire-macos-arm64
 tar -xzf acquire-macos-arm64.tar.gz -C acquire-macos-arm64
 cd acquire-macos-arm64
+xattr -d com.apple.quarantine ./acquire
 sudo ./acquire
 ```
+
+Only remove the quarantine attribute after the archive checksum reports `OK` and you trust the release source. The current release is ad-hoc signed rather than Apple-notarized, so Gatekeeper otherwise blocks the downloaded executable.
 
 Root is preferred, but Full Disk Access is still needed for the best macOS coverage. Collection can include sensitive browser history, cookies, saved-login databases, shell history, logs, persistence data, SSH metadata, and other user/system artifacts. Only use the collector with explicit authorization and an approved evidence-handling process.
 
