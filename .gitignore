@@ -1,1 +1,14 @@
 .worktrees/
+.venv/
+.uv-cache/
+uv.lock
+__pycache__/
+.pytest_cache/
+build/
+dist/
+*.pyc
+*.tar
+*.tar.gz
+*.zip
+*.report.json
+Acquire_*.log
